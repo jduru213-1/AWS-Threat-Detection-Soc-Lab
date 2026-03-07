@@ -17,19 +17,45 @@ Hands-on lab for AWS threat detection with Splunk: run Splunk locally, stand up 
 
 ## Quick start
 
-**1. Start Splunk** — `cd soc` → `docker compose up -d` → open https://localhost:8000 (login: `admin` / `ChangeMe123!`). Allow 2–5 min on first start.
+**1. Start Splunk**
 
-**2. Create indexes** — From `soc`: `pip install splunk-sdk` then `python ./scripts/setup_splunk.py`. Use your Splunk password; confirm indexes `aws_cloudtrail`, `aws_config`, `aws_vpcflow` in **Settings → Indexes**.
+```bash
+cd soc
+docker compose up -d
+```
+
+Open https://localhost:8000 (login: `admin` / `ChangeMe123!`). Allow 2–5 min on first start.
+
+**2. Create indexes** (from `soc`)
+
+```bash
+pip install splunk-sdk
+python ./scripts/setup_splunk.py
+```
+
+Use your Splunk password when asked. Confirm indexes `aws_cloudtrail`, `aws_config`, `aws_vpcflow` in **Settings → Indexes**.
 
 **3. Install Splunk Add-on for AWS** — In Splunk: **Apps → Manage Apps → Install app from file** (use the `.tgz` from [soc/add-on/README.md](soc/add-on/README.md)) → restart when prompted.
 
-**4. Create AWS environment** — `cd infra` → `.\build.ps1`. Enter AWS credentials, type **yes** to apply. Copy the **bucket names** and **Splunk user credentials** from the output for the Add-on. See [infra/README.md](infra/README.md) for details.
+**4. Create AWS environment**
+
+```powershell
+cd infra
+.\build.ps1
+```
+
+Enter AWS credentials, type **yes** to apply. Copy the **bucket names** and **Splunk user credentials** from the output for the Add-on. See [infra/README.md](infra/README.md) for details.
 
 ---
 
 ## Shutting down
 
-From `infra`: run `.\destroy.ps1`, enter credentials if prompted, type **yes** to confirm. The script empties S3 and removes all resources.
+```powershell
+cd infra
+.\destroy.ps1
+```
+
+Enter credentials if prompted, type **yes** to confirm. The script empties S3 and removes all resources.
 
 ---
 
