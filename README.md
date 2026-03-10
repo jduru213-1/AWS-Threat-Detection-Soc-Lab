@@ -1,88 +1,116 @@
-# 🛡️ AWS Threat Detection Soc Lab
+# AWS Threat Detection Soc Lab
 
-<p align="center">
-  <strong>Cloud logs → Splunk → Detection practice</strong>
-</p>
+This project is a Terraform-and-script-driven lab for standing up **AWS logging** (CloudTrail, Config, VPC Flow Logs) into **S3** and ingesting that data into **Splunk** running locally in Docker. It gives you a repeatable, Infrastructure-as-Code path to practice threat detection and search without hand-wiring every bucket and input.
 
----
-
-Welcome to the **AWS Threat Detection Soc Lab**.
-
-This project gives you a hands-on environment to learn AWS threat detection with Splunk: run Splunk locally in Docker, stand up AWS logging (CloudTrail, Config, VPC Flow Logs) with one script, and practice detection. **Build** brings the environment up; **destroy** tears it down. No need to manage Terraform by hand unless you want to—the scripts handle it.
+Once resources are deployed, use the [Splunk Add-on for AWS](https://splunkbase.splunk.com/app/1876/) to connect Splunk to the buckets; detailed flow and troubleshooting live in [guides/](guides/).
 
 ---
 
-## 🔧 Prerequisites
+## Overview
 
-| Requirement | Purpose |
-|-------------|---------|
-| Docker Desktop | Splunk in a container |
-| Python 3.10+ | Index setup script |
-| AWS account | Lab resources |
-| PowerShell | `build.ps1` / `destroy.ps1` |
+The lab lets you:
 
-> Run `aws configure` once so `build.ps1` stops prompting for keys.
+- Run **Splunk Enterprise** locally via Docker with indexes prepped for AWS data.
+- **Create AWS resources in one step** (`build.ps1`): three S3 buckets, CloudTrail, Config, VPC Flow Logs, and a least-privilege IAM user for Splunk.
+- **Tear everything down** (`destroy.ps1`) so you don’t leave buckets or trails running.
+- Practice **search and detection** over `aws_cloudtrail`, `aws_config`, and `aws_vpcflow` once data flows.
 
----
-
-## 🚀 Get started
-
-### 1. 🐳 Splunk
-
-```bash
-cd soc
-docker compose up -d
-```
-
-Open **https://localhost:8000** — `admin` / `ChangeMe123!` (or `soc/.env`). First start may take a few minutes.
-
-### 2. 📊 Indexes
-
-```bash
-pip install splunk-sdk
-python ./scripts/setup_splunk.py
-```
-
-Check **Settings → Indexes** for `aws_cloudtrail`, `aws_config`, `aws_vpcflow`.
-
-### 3. 📦 Splunk Add-on for AWS
-
-Download: https://splunkbase.splunk.com/app/1876/
-
-Splunk: **Apps → Manage Apps → Install app from file** → restart. Save `.tgz` in `soc/add-on/` if you like: [soc/add-on/README.md](soc/add-on/README.md).
-
-### 4. ☁️ AWS
-
-```powershell
-cd infra
-.\build.ps1
-```
-
-Confirm `yes`. Copy bucket names and `soc-lab-splunk-addon` keys — use in add-on **Configuration → AWS Account** and **Inputs** (S3 per bucket, plain S3 only).
-
-Script blocked:
-
-```powershell
-powershell -ExecutionPolicy Bypass -File .\build.ps1
-```
+The layout is modular: local stack (Splunk + add-on) is separate from AWS (Terraform under `infra/`), similar in spirit to how [kali-soc-terraform](https://github.com/tayontech/kali-soc-terraform) breaks out VPC, IAM, EC2, etc.—here the “modules” are Splunk, indexes, add-on, and AWS logging.
 
 ---
 
-## 🔄 Flow
+## Components Overview
 
-```
-Splunk (Docker) → Indexes → Add-on → AWS (build.ps1)
-                              ↓
-                    CloudTrail | Config | VPC Flow → S3 → Splunk
-```
+### 1. Splunk (Docker)
 
-Details: [guides/step-by-step.md](guides/step-by-step.md) · [guides/aws-data-and-splunk-ingestion.md](guides/aws-data-and-splunk-ingestion.md).
+Splunk runs in a container defined under `soc/`. First start can take a few minutes. Web UI and credentials are set in `soc/` (default admin password overridable via `soc/.env`).
+
+### 2. Indexes
+
+A small Python script (`scripts/setup_splunk.py`) creates the indexes the add-on expects: `aws_cloudtrail`, `aws_config`, `aws_vpcflow`. Run it after Splunk is up and reachable.
+
+### 3. Splunk Add-on for AWS
+
+Install from [Splunkbase](https://splunkbase.splunk.com/app/1876/) (or keep the `.tgz` under [soc/add-on/](soc/add-on/README.md)). Configure **AWS Account** and **S3 inputs** per bucket—use **plain S3** inputs only for this lab; the IAM user has S3 read, not SQS.
+
+### 4. AWS infrastructure (`infra/`)
+
+Terraform provisions:
+
+- **S3 buckets** for CloudTrail, Config, and VPC Flow Logs.
+- **CloudTrail** trail writing to its bucket.
+- **AWS Config** recorder and delivery channel to the Config bucket.
+- **VPC Flow Logs** to the VPC Flow bucket.
+- **IAM user** `soc-lab-splunk-addon` with read-only access to those buckets only.
+
+`build.ps1` wraps `terraform init/plan/apply` and can install AWS CLI/Terraform if missing. `destroy.ps1` empties buckets then destroys.
 
 ---
 
-## 🔍 Usage
+## What gets created (AWS)
 
-**Search once data flows**
+| Resource | Purpose |
+|----------|---------|
+| 3× S3 buckets | CloudTrail, Config, VPC Flow log storage; Splunk reads via add-on. |
+| CloudTrail | API activity in the account. |
+| AWS Config | Configuration change history. |
+| VPC Flow Logs | Network flow metadata. |
+| IAM user `soc-lab-splunk-addon` | Splunk uses this to list/get objects in the three buckets only. |
+
+Build output prints bucket names and access keys—use those only in the add-on, not in code.
+
+---
+
+## Requirements
+
+- **Docker Desktop** — Splunk container.
+- **Python 3.10+** and `splunk-sdk` — index setup script.
+- **AWS account** with permission to create the resources above.
+- **PowerShell** — `infra/build.ps1` and `infra/destroy.ps1`.
+- **AWS CLI configured** — run `aws configure` once so `build.ps1` doesn’t keep prompting.
+
+---
+
+## Deployment Instructions
+
+1. **Clone the repository** (or open this folder) and start Splunk:
+
+   ```bash
+   cd soc
+   docker compose up -d
+   ```
+
+2. **Open Splunk** at `https://localhost:8000` and log in (see `soc/.env` or defaults in compose).
+
+3. **Create indexes**:
+
+   ```bash
+   pip install splunk-sdk
+   python ./scripts/setup_splunk.py
+   ```
+
+4. **Install the Splunk Add-on for AWS** via **Apps → Manage Apps → Install app from file**, then restart Splunk.
+
+5. **Deploy AWS resources**:
+
+   ```powershell
+   cd infra
+   .\build.ps1
+   ```
+
+   Confirm with `yes` when prompted. If execution policy blocks the script:
+
+   ```powershell
+   powershell -ExecutionPolicy Bypass -File .\build.ps1
+   ```
+
+6. **Configure the add-on** with the printed bucket names and `soc-lab-splunk-addon` keys—**Configuration → AWS Account** and **Inputs** (one S3 input per bucket).
+
+End-to-end walkthrough: [guides/step-by-step.md](guides/step-by-step.md). S3 vs SQS and build output reference: [guides/aws-data-and-splunk-ingestion.md](guides/aws-data-and-splunk-ingestion.md).
+
+---
+
+## Searching once data is flowing
 
 ```
 index=aws_cloudtrail earliest=-1h
@@ -90,24 +118,40 @@ index=aws_config earliest=-1h
 index=aws_vpcflow earliest=-1h
 ```
 
-**Teardown**
+---
+
+## Cleanup
+
+To destroy AWS resources and avoid ongoing cost:
 
 ```powershell
 cd infra
 .\destroy.ps1
 ```
 
-Confirm `yes`. Splunk can stay up; only AWS resources are removed.
+Confirm with `yes`. Splunk can keep running locally; only AWS is torn down. Advanced: Terraform directly—see [infra/README.md](infra/README.md).
 
 ---
 
-## 📁 Project structure
+## Notes on security
+
+- **Credentials**: Don’t commit access keys; use the IAM user only in the Splunk add-on UI.
+- **SSH / network**: This lab is for learning; tighten security groups and access if you extend it toward production patterns.
+- **SQS**: If the add-on UI shows SQS `AccessDenied`, use plain S3 inputs—the lab user is S3-only by design (see [guides/aws-data-and-splunk-ingestion.md](guides/aws-data-and-splunk-ingestion.md)).
+
+---
+
+## Contributing
+
+Improvements and fixes welcome via issues or pull requests.
+
+---
+
+## Project layout
 
 | Path | Purpose |
 |------|---------|
 | `infra/` | Terraform; `build.ps1` / `destroy.ps1` |
 | `soc/` | Docker Splunk, add-on `.tgz` folder |
 | `scripts/` | Index creation |
-| `guides/` | Step-by-step + S3 vs SQS reference |
-
-Terraform: `infra/` → `terraform plan` | `apply` | `destroy`. Options: [infra/README.md](infra/README.md).
+| `guides/` | Step-by-step + ingestion reference |
