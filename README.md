@@ -17,6 +17,10 @@ The lab lets you:
 <img width="1330" height="778" alt="image" src="https://github.com/user-attachments/assets/c8b22a6b-affa-441a-88df-82d818fa1a4e" />
 
 
+<p align="center">
+  <img width="1330" height="778" alt="AWS Threat Detection SOC Lab architecture: AWS Cloud (CloudTrail, Config, VPC Flow → S3 → SQS) to Splunk (Docker)" src="https://github.com/user-attachments/assets/c8b22a6b-affa-441a-88df-82d818fa1a4e" />
+</p>
+
 ---
 
 ## 🧩 Components Overview

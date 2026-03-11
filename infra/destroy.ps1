@@ -185,11 +185,16 @@ if ($buckets.Count -gt 0) {
     Write-Host "No bucket outputs in state (already destroyed or not applied)." -ForegroundColor Gray
 }
 
-# Delete Splunk IAM user's access keys if they exist. This avoids IAM DeleteConflict
-# when Terraform tries to delete the user but keys were created outside of TF or
-# rotated multiple times.
+
+
+
+
+
+# Delete IAM access keys for Splunk and Stratus users if they exist. This avoids
+# IAM DeleteConflict when Terraform tries to delete the user but keys were
+# created outside of TF or rotated multiple times.
 try {
-    $splunkUser = "soc-lab-splunk-addon"
+    $iamUsers = @("soc-lab-splunk-addon", "soc-lab-stratus")
     $awsExe = (Get-Command aws -ErrorAction Stop).Source
     function Invoke-Aws {
         param([string[]]$Arguments)
@@ -200,20 +205,22 @@ try {
         return @{ Output = $out; ExitCode = $code }
     }
 
-    $list = Invoke-Aws -Arguments @("iam", "list-access-keys", "--user-name", $splunkUser, "--output", "json")
-    if ($list.ExitCode -eq 0 -and $list.Output) {
-        $json = if ($list.Output -is [string]) { $list.Output } else { ($list.Output | Where-Object { $_ -is [string] }) -join "`n" }
-        if ($json) {
-            $ak = $json | ConvertFrom-Json
-            $keys = @()
-            if ($ak.AccessKeyMetadata) { $keys = @($ak.AccessKeyMetadata) }
-            if ($keys.Count -gt 0) {
-                Write-Host "Deleting IAM access keys for $splunkUser ..." -ForegroundColor Cyan
-                foreach ($k in $keys) {
-                    if ($k.AccessKeyId) {
-                        $del = Invoke-Aws -Arguments @("iam", "delete-access-key", "--user-name", $splunkUser, "--access-key-id", $k.AccessKeyId)
-                        if ($del.ExitCode -ne 0) {
-                            Write-Warning "Failed to delete access key $($k.AccessKeyId): $($del.Output)"
+    foreach ($splunkUser in $iamUsers) {
+        $list = Invoke-Aws -Arguments @("iam", "list-access-keys", "--user-name", $splunkUser, "--output", "json")
+        if ($list.ExitCode -eq 0 -and $list.Output) {
+            $json = if ($list.Output -is [string]) { $list.Output } else { ($list.Output | Where-Object { $_ -is [string] }) -join "`n" }
+            if ($json) {
+                $ak = $json | ConvertFrom-Json
+                $keys = @()
+                if ($ak.AccessKeyMetadata) { $keys = @($ak.AccessKeyMetadata) }
+                if ($keys.Count -gt 0) {
+                    Write-Host "Deleting IAM access keys for $splunkUser ..." -ForegroundColor Cyan
+                    foreach ($k in $keys) {
+                        if ($k.AccessKeyId) {
+                            $del = Invoke-Aws -Arguments @("iam", "delete-access-key", "--user-name", $splunkUser, "--access-key-id", $k.AccessKeyId)
+                            if ($del.ExitCode -ne 0) {
+                                Write-Warning "Failed to delete access key $($k.AccessKeyId): $($del.Output)"
+                            }
                         }
                     }
                 }

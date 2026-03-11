@@ -135,8 +135,47 @@ if ($LASTEXITCODE -ne 0) { throw "terraform apply failed." }
 
 Write-Host ""
 Write-Host "=== Build complete ===" -ForegroundColor Green
-Write-Host "Outputs (for Splunk Add-on):" -ForegroundColor Cyan
+Write-Host "Outputs (for Splunk Add-on / Stratus):" -ForegroundColor Cyan
 & terraform output
 
 Write-Host ""
 Write-Host "Splunk secret key: terraform output -raw splunk_iam_secret_key" -ForegroundColor Gray
+
+# --- Write .env files with AWS creds for Splunk Add-on and Stratus (git-ignored) ---
+try {
+    $tfJson = terraform output -json 2>$null
+    if ($tfJson) {
+        $out = $tfJson | ConvertFrom-Json
+        $repoRoot = Split-Path $infraDir -Parent
+
+        # Splunk Add-on credentials
+        $splunkKeyId  = $out.splunk_iam_access_key_id.value
+        $splunkSecret = $out.splunk_iam_secret_key.value
+        if ($splunkKeyId -and $splunkSecret) {
+            $splunkEnvPath = Join-Path $repoRoot ".env.splunk"
+            $splunkLines = @(
+                "# Splunk Add-on AWS credentials (local only, git-ignored)"
+                "SPLUNK_AWS_ACCESS_KEY_ID=$splunkKeyId"
+                "SPLUNK_AWS_SECRET_ACCESS_KEY=$splunkSecret"
+            )
+            Set-Content -Path $splunkEnvPath -Value $splunkLines -Encoding UTF8
+            Write-Host "Wrote Splunk AWS credentials to $splunkEnvPath (do not commit this file)." -ForegroundColor Gray
+        }
+
+        # Stratus Red Team credentials
+        $stratusKeyId  = $out.stratus_iam_access_key_id.value
+        $stratusSecret = $out.stratus_iam_secret_key.value
+        if ($stratusKeyId -and $stratusSecret) {
+            $stratusEnvPath = Join-Path $repoRoot ".env.stratus"
+            $stratusLines = @(
+                "# Stratus Red Team AWS credentials (local only, git-ignored)"
+                "STRATUS_AWS_ACCESS_KEY_ID=$stratusKeyId"
+                "STRATUS_AWS_SECRET_ACCESS_KEY=$stratusSecret"
+            )
+            Set-Content -Path $stratusEnvPath -Value $stratusLines -Encoding UTF8
+            Write-Host "Wrote Stratus AWS credentials to $stratusEnvPath (do not commit this file)." -ForegroundColor Gray
+        }
+    }
+} catch {
+    Write-Warning "Could not write .env helper files: $($_.Exception.Message)"
+}
