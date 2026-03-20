@@ -1,7 +1,7 @@
 # 🛡️ AWS Threat Detection SOC Lab
-This project is a Terraform-based SOC lab for learning AWS threat detection. It stands up core AWS telemetry (CloudTrail, AWS Config, and VPC Flow Logs), delivers it to S3 (optionally via SQS), and ingests it into Splunk running locally in Docker—so you can practice investigations and build detections with real logs. It also includes Stratus Red Team to generate controlled “known-bad” activity for validation.
+This project is a Terraform-based SOC lab for learning AWS threat detection. It stands up core AWS telemetry (CloudTrail, AWS Config, and VPC Flow Logs), delivers it to S3 (optionally via SQS), and ingests it into Splunk running locally in Docker so you can practice investigations and build detections with real logs. It also includes Stratus Red Team to generate controlled “known-bad” activity for validation.
 
-I built this for cloud threat detection and monitoring end-to-end: generate telemetry, ingest it into Splunk, and iterate on detections. I’m sharing the repo so others can run the same workflow, save time, and get real AWS telemetry—so you can catch bad guys in the cloud.
+I built this for cloud threat detection and monitoring end-to-end: generate telemetry, ingest it into Splunk, and iterate on detections. I’m sharing the repo so others can run the same workflow, save time, and get real AWS telemetry so you can eventually catch those "bad guys" in the cloud!
 
 <p align="center">
   <img width="1330" height="778" alt="Architecture: AWS → S3 → (optional SQS) → Splunk (Docker)" src="https://github.com/user-attachments/assets/c8b22a6b-affa-441a-88df-82d818fa1a4e" />
@@ -154,4 +154,4 @@ cd infra
 | `attacks/` | Stratus Red Team instructions |
 
 *Created by Justin Duru*  
-*Collect signals. Build detections. Validate with Stratus. One command, full loop.*
+*Collect signals from AWS. Build detections in Splunk Enterprise. Validate with Stratus.*
