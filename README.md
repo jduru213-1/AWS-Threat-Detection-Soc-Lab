@@ -1,8 +1,8 @@
 # 🛡️ AWS Threat Detection SOC Lab
-This is a detection engineering portfolio project focused on AWS threat monitoring. I built a repeatable pipeline that collects AWS telemetry, ingests it into Splunk, validates detections with controlled attack activity, and documents what was learned.
+Imagine spinning up a cloud SOC lab where the infrastructure is already handled for you, so you can jump straight into adversary simulation, detection building, and real investigation practice. This Terraform-based project gives you a repeatable, cost-conscious AWS threat detection environment that helps you focus on learning and outcomes instead of setup overhead.
 
 ## Why this matters
-This lab simulates how a cloud SOC ingests AWS telemetry, validates detections with adversary emulation, and measures detection coverage.
+This lab simulates how a cloud SOC ingests AWS telemetry, maps attacker behavior to logs, builds practical detections in Splunk, and validates detection coverage with adversary emulation.
 
 ---
 
