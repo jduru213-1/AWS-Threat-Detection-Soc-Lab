@@ -1,5 +1,8 @@
 # 🛡️ AWS Threat Detection SOC Lab
-This project is a Terraform-based SOC lab for learning AWS threat detection and securtiy monitoring. It stands up core AWS telemetry, delivers it to S3 (optionally via SQS), and ingests it into Splunk running locally in Docker so you can practice investigations and build detections with real logs. It also includes Stratus Red Team to generate controlled “known-bad” activity for validation.
+This is a detection engineering portfolio project focused on AWS threat monitoring. I built a repeatable pipeline that collects AWS telemetry, ingests it into Splunk, validates detections with controlled attack activity, and documents what was learned.
+
+## Why this matters
+This lab simulates how a cloud SOC ingests AWS telemetry, validates detections with adversary emulation, and measures detection coverage.
 
 ---
 
@@ -11,9 +14,28 @@ This diagram shows the end-to-end lab flow: AWS telemetry is collected, stored, 
 ---
 
 ## Overview
-This repo is a repeatable environment for setting up AWS logging and ingesting it into Splunk. The goal is simple: generate realistic AWS telemetry, run “known-bad” activity, and practice building detections based on what analysts actually see.
+This repo is structured as a full SOC practice loop:
+1. Build cloud telemetry infrastructure with Terraform.
+2. Ingest logs into Splunk and normalize into dedicated indexes.
+3. Simulate attacker behavior with Stratus Red Team.
+4. Validate detections and investigations against real generated events.
 
-## What You Get (high level)
+## Portfolio outcomes
+| Outcome | What was delivered |
+|------|------|
+| Detection-ready data pipeline | CloudTrail, AWS Config, and VPC Flow Logs routed to S3 and ingested into Splunk |
+| Validated attack telemetry | Stratus techniques used to generate known-bad cloud activity for testing |
+| Practical detections | Starter detections for failed logins, IAM user creation, and security group changes |
+| Repeatable workflow | One-command build and teardown scripts for fast lab reset and iteration |
+| Analyst workflow practice | Search, triage, and dashboard building based on realistic AWS event data |
+
+## Lessons learned
+- Data quality and source mapping matter more than alert volume.
+- S3-only ingestion is the fastest stable path; SQS adds flexibility but more moving parts.
+- Detection logic improves faster when every test is tied to a known attack action and expected evidence.
+- Automating build/destroy makes cloud detection practice cheaper and more consistent.
+
+## What you get (high level)
 1. AWS telemetry
    - CloudTrail (management/API event trail) → S3
    - AWS Config (config change history) → S3
@@ -61,7 +83,7 @@ python ./scripts/setup_splunk.py
 ### 3) Install the Splunk Add-on for AWS
 Install the Splunk Add-on for AWS from [Splunkbase](https://splunkbase.splunk.com/app/1876/) and restart Splunk.
 
-### 4) Build AWS Resources (Terraform)
+### 4) Build AWS resources (Terraform)
 ```powershell
 cd infra
 .\build.ps1
@@ -89,11 +111,11 @@ Then run a technique:
 stratus detonate <technique-id> --cleanup
 ```
 
-## How Ingestion Works (data flow)
+## How ingestion works (data flow)
 At a high level, your pipeline is:
 
 1. CloudTrail / AWS Config / VPC Flow Logs → S3
-2. **Splunk Add-on → Splunk indexes (`aws_*`)**
+2. Splunk Add-on → Splunk indexes (`aws_*`)
 
 Two ingestion modes exist:
 
