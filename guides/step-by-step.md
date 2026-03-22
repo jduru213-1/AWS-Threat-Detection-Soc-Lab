@@ -55,18 +55,18 @@ Confirm with `yes`. **Save from output:** bucket names, `soc-lab-splunk-addon` a
 
 ---
 
-## 5. Data ingestion
+## 5. Data ingestion (SQS-based S3)
 
 1. Add-on **Configuration → AWS Account** — paste Splunk IAM keys from Step 4.
-2. **Inputs → Create New Input** — three S3 inputs:
+2. **Inputs → Create New Input** — choose **SQS-based S3** and create three inputs:
 
-| Type | Bucket (from build) | Index |
-|------|---------------------|--------|
-| CloudTrail | cloudtrail bucket | `aws_cloudtrail` |
-| Config | config bucket | `aws_config` |
-| VPC Flow Logs | vpcflow bucket | `aws_vpcflow` |
+| Type | Queue (from Terraform outputs) | Index |
+|------|--------------------------------|--------|
+| CloudTrail | cloudtrail SQS queue | `aws_cloudtrail` |
+| Config | config SQS queue | `aws_config` |
+| VPC Flow Logs | vpcflow SQS queue | `aws_vpcflow` |
 
-Use plain S3 inputs (no SQS). If add-on shows SQS errors, leave Assume Role blank and use S3-only.
+Queues are printed by `build.ps1` (and defined in `infra/outputs_sqs.tf`). The Splunk add-on IAM user already has SQS permissions via Terraform.
 
 Verify: `index=aws_cloudtrail earliest=-30m` (and `aws_config`, `aws_vpcflow`). Wait and retry if empty.
 

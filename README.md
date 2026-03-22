@@ -7,10 +7,9 @@ This lab simulates how a cloud SOC ingests AWS telemetry, maps attacker behavior
 ---
 
 ## 🏗️ Architecture
-This diagram shows the end-to-end lab flow: AWS telemetry is collected, stored, and ingested into Splunk for detection testing.
+This diagram shows the end-to-end workflow: AWS telemetry is collected, stored, and ingested into Splunk to validate detections.
 
 ![Architecture: AWS to S3 (optional SQS) to Splunk Docker](https://github.com/user-attachments/assets/c65afbe7-7817-4510-8017-30ffeb521446)
-
 
 ---
 
@@ -91,15 +90,14 @@ cd infra
 ```
 Save the bucket names and the Splunk IAM key + secret printed by the script.
 
-### 5) Configure ingestion in Splunk Add-on
+### 5) Configure ingestion in Splunk Add-on (SQS-based S3)
 In the Splunk Add-on:
 - Configuration → AWS Account: paste the Splunk IAM key + secret from Step 4
-- Inputs → create three S3 inputs (main/recommended path):
-  - CloudTrail bucket → index `aws_cloudtrail`
-  - Config bucket → index `aws_config`
-  - VPC Flow Logs bucket → index `aws_vpcflow`
-
-Tip: start with plain S3 inputs. If you see SQS/Add-on errors, use the repo’s troubleshooting guidance below.
+- Inputs → create three SQS-based S3 inputs:
+  - CloudTrail queue (from Terraform outputs) → index `aws_cloudtrail`
+  - Config queue (from Terraform outputs) → index `aws_config`
+  - VPC Flow Logs queue (from Terraform outputs) → index `aws_vpcflow`
+Note: Terraform prints SQS queue URLs/ARNs after `build.ps1` (see also `infra/outputs_sqs.tf`).
 
 ### 6) Run Stratus Red Team
 ```powershell
@@ -113,20 +111,14 @@ stratus detonate <technique-id> --cleanup
 ```
 
 ## 🔄 How ingestion works (data flow)
-At a high level, your pipeline is:
+Primary (SQS-based S3):
+1. CloudTrail / AWS Config / VPC Flow Logs write objects to S3
+2. S3 sends ObjectCreated notifications to SQS queues (provisioned by Terraform)
+3. Splunk Add-on polls SQS, reads messages, fetches referenced S3 objects
+4. Events are written to Splunk indexes (`aws_*`)
 
-1. CloudTrail / AWS Config / VPC Flow Logs → S3
-2. Splunk Add-on → Splunk indexes (`aws_*`)
-
-Two ingestion modes exist:
-
-- S3-only (recommended to start)
-  - Splunk Add-on polls S3 and ingests new objects.
-- SQS-based (optional)
-  - Terraform can wire S3 ObjectCreated notifications → SQS queues
-  - The Splunk Add-on can then poll SQS and fetch the referenced S3 objects.
-
-Terraform supports SQS-based ingestion via `enable_sqs_s3_inputs` (default is `true`), but it only helps if you configure the Splunk Add-on inputs accordingly.
+Alternate (S3-only; not default here):
+- Splunk Add-on lists S3 and ingests new objects directly (no SQS)
 
 ## 🔎 Verify data in Splunk
 Start with:
