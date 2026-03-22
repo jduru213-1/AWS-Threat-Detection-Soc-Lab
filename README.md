@@ -29,18 +29,8 @@ This diagram shows the end-to-end workflow: AWS telemetry is collected, stored, 
 ---
 
 ## Table of contents
-- [Quick project snapshot](#quick-project-snapshot)
-- [Why this matters](#why-this-matters)
-- [Architecture](#architecture)
-- [Overview](#overview)
-- [Portfolio outcomes](#portfolio-outcomes)
-- [Evidence checklist](#evidence-checklist)
-- [Components (repo map)](#components-repo-map)
-- [Prerequisites](#prerequisites)
 - [Quick start (end-to-end)](#quick-start-end-to-end)
-- [Verify data in Splunk](#verify-data-in-splunk)
-- [Cleanup](#cleanup)
-- [Repo layout](#repo-layout)
+- [Components (repo map)](#components-repo-map)
 
 ---
 
