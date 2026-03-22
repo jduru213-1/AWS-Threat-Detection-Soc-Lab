@@ -9,7 +9,7 @@ This lab simulates how a cloud SOC ingests AWS telemetry, maps attacker behavior
 ## 🏗️ Architecture
 This diagram shows the end-to-end lab flow: AWS telemetry is collected, stored, and ingested into Splunk for detection testing.
 
-![Architecture: AWS to S3 (optional SQS) to Splunk Docker](https://github.com/user-attachments/assets/c8b22a6b-affa-441a-88df-82d818fa1a4e)
+![Architecture: AWS to S3 (optional SQS) to Splunk Docker](https://github.com/user-attachments/assets/d79a9395-f0db-4317-92a9-809b770692ee)
 
 ---
 
