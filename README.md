@@ -3,7 +3,7 @@ Imagine spinning up a cloud SOC lab where the infrastructure is already in place
 
 > Terraform handles the infrastructure heavy lifting so you can focus on cloud detections, not setup friction.
 
-## Quick project snapshot
+## Quick Project Snapshot
 | Area | Details |
 |------|---------|
 | Cloud telemetry | CloudTrail, AWS Config, VPC Flow Logs |
