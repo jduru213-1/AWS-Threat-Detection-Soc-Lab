@@ -63,7 +63,6 @@ Use this list to quickly verify project outcomes:
 - Splunk indexes exist: `aws_cloudtrail`, `aws_config`, `aws_vpcflow`
 - SQS-based inputs are configured and receiving events
 - Stratus detonation runs and corresponding events appear in Splunk
-- Starter detections return expected matches in CloudTrail-backed data
 
 ## Components (repo map)
 | Component | What it does | Where |
