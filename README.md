@@ -49,14 +49,7 @@ This repo is structured as a full SOC practice loop:
 3. Simulate attacker behavior with Stratus Red Team.
 4. Validate detections and investigations against real generated events.
 
-## Portfolio outcomes
-| Outcome | What was delivered |
-|------|------|
-| Detection-ready data pipeline | CloudTrail, AWS Config, and VPC Flow Logs routed to S3 and ingested into Splunk |
-| Validated attack telemetry | Stratus techniques used to generate known-bad cloud activity for testing |
-| Practical detections | Starter detections for failed logins, IAM user creation, and security group changes |
-| Repeatable workflow | One-command build and teardown scripts for fast lab reset and iteration |
-| Analyst workflow practice | Search, triage, and dashboard building based on realistic AWS event data |
+---
 
 ## Evidence checklist
 Use this list to quickly verify project outcomes:
@@ -64,13 +57,15 @@ Use this list to quickly verify project outcomes:
 - SQS-based inputs are configured and receiving events
 - Stratus detonation runs and corresponding events appear in Splunk
 
-## Components (repo map)
+---
+
+## Components 
 | Component | What it does | Where |
 |----------|--------------|------|
-| Splunk (Docker) | Local Splunk Enterprise for searching + dashboards | `soc/` |
-| Index setup | Creates `aws_cloudtrail`, `aws_config`, `aws_vpcflow` | `scripts/setup_splunk.py` |
+| Splunk (Docker) | Local Splunk Enterprise for searching and dashboards | `soc/` |
+| Index Setup | Creates `aws_cloudtrail`, `aws_config`, `aws_vpcflow` | `scripts/setup_splunk.py` |
 | Splunk Add-on for AWS | Ingests log objects from S3 (or SQS-based ingestion) | Splunk UI |
-| AWS logging infra | CloudTrail + Config + VPC Flow Logs → S3 (+ optional SQS wiring) | `infra/` |
+| AWS logging Infra | CloudTrail, Config,  VPC Flow Logs → S3  | `infra/` |
 | Stratus Red Team | Generates “known-bad” activity to validate detections | `attacks/` |
 
 ## Prerequisites
