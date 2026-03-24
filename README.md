@@ -4,7 +4,9 @@ Imagine a cloud SOC lab where building the infrastructure is part of the skill b
 
 > Terraform codifies the infrastructure so you build it once and spin it up or down whenever you need it.
 
-I originally built this to deepen my understanding of detection engineering using telemetry from the cloud and to prepare for the AWS Solutions Architect certification. I’m sharing it in case it’s useful to others exploring similar paths. Feel free to check out the Medium blog, which walks through the full implementation step by step—some components require manual configuration in Splunk and AWS and can’t be fully automated.
+I originally built this to deepen my understanding of detection engineering using telemetry from the cloud and to prepare for the AWS Solutions Architect certification. I’m sharing it in case it’s useful to others exploring similar paths. 
+
+Feel free to check out the Medium blog, which walks through the full implementation step by step as some components will require manual configuration in Splunk and AWS and cannot be fully automated.
 
 ---
 
