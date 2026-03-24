@@ -1,5 +1,5 @@
 # AWS Threat Detection SOC Lab
-This project is a practical AWS threat detection lab built for hands-on SOC learning. The infrastructure is automated with Terraform, so you can spend your time on what matters most: adversary simulation, investigation practice, and detection improvement in Splunk.
+Imagine a cloud SOC lab where the infrastructure is already handled, so you can focus on what actually builds skill: adversary simulation, investigation practice, and detection engineering in Splunk.
 
 > Terraform handles the infrastructure heavy lifting so you can focus on cloud detections, not setup friction.
 
