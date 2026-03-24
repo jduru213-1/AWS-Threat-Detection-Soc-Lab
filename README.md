@@ -51,12 +51,12 @@ cd soc && docker compose up -d
 # Open https://localhost:8000
 ```
 ### 2. Create indexes
-```
+```bash
 pip install splunk-sdk
 python ./scripts/setup_splunk.py --no-verify-tls
 ```
 ### 3. Build AWS infrastructure
-```
+```bash
 cd infra && ./build.sh
 # Save the bucket names, SQS queue URLs, and IAM credentials from the output
 ```
