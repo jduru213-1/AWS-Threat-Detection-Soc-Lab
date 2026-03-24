@@ -103,12 +103,3 @@ cd infra
 
 Use **build credentials** (not Stratus). Confirm with `yes`.
 
----
-
-## Troubleshooting
-
-| Issue | Fix |
-|-------|-----|
-| Script blocked | `chmod +x ./build.sh && ./build.sh` |
-| SQS / add-on errors | Use plain S3 inputs; clear Assume Role in AWS Account config |
-| Destroy fails (AccessDenied) | Run destroy in a terminal where you haven’t set Stratus profile; use same creds as build |
