@@ -87,7 +87,6 @@ load_admin_env() {
   local env_file="$1"
   [[ -f "$env_file" ]] || return 0
   while IFS= read -r line || [[ -n "$line" ]]; do
-    # Remove UTF-8 BOM if present and trim CR from CRLF files.
     line="${line//$'\ufeff'/}"
     line="${line%$'\r'}"
     [[ -z "$line" || "$line" =~ ^[[:space:]]*# ]] && continue
@@ -109,7 +108,6 @@ fi
 
 LAB_PROFILE="${LAB_PROFILE:-soc-lab-admin}"
 
-# Reuse saved profile from build.sh when env vars are not set.
 if [[ -z "${AWS_ACCESS_KEY_ID:-}" || -z "${AWS_SECRET_ACCESS_KEY:-}" ]]; then
   if ! aws sts get-caller-identity >/dev/null 2>&1; then
     if aws sts get-caller-identity --profile "$LAB_PROFILE" >/dev/null 2>&1; then
@@ -126,7 +124,6 @@ if [[ -z "${AWS_ACCESS_KEY_ID:-}" || -z "${AWS_SECRET_ACCESS_KEY:-}" ]]; then
     read -r -s -p "AWS Secret Access Key: " AWS_SECRET_ACCESS_KEY
     echo
     export AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY
-    # Persist for future runs to avoid re-entering credentials.
     aws configure set aws_access_key_id "$AWS_ACCESS_KEY_ID" --profile "$LAB_PROFILE"
     aws configure set aws_secret_access_key "$AWS_SECRET_ACCESS_KEY" --profile "$LAB_PROFILE"
     if ! aws configure get region --profile "$LAB_PROFILE" >/dev/null 2>&1; then
@@ -142,10 +139,28 @@ if [[ "$CALLER_ARN" == *"soc-lab-stratus"* ]]; then
   exit 1
 fi
 
-# Pull bucket names from state/output/show and only keep soc-lab-* buckets.
-mapfile -t BUCKETS < <(
-  {
-    terraform state pull 2>/dev/null | python - <<'PY'
+# ---------------------------------------------------------------------------
+# Collect bucket names to empty
+# ---------------------------------------------------------------------------
+# Pull bucket names directly from Terraform outputs so the list stays correct
+# regardless of the project_name variable. Fall back to the state scan only
+# for any bucket outputs that may not yet be defined.
+# ---------------------------------------------------------------------------
+collect_buckets_from_outputs() {
+  local names=()
+  local val
+  for key in cloudtrail_bucket_name config_bucket_name vpc_flow_logs_bucket_name; do
+    val="$(terraform output -raw "$key" 2>/dev/null || true)"
+    # Skip empty, "null" (Terraform literal), or whitespace-only values.
+    if [[ -n "$val" && "$val" != "null" ]]; then
+      names+=("$val")
+    fi
+  done
+  printf '%s\n' "${names[@]}"
+}
+
+collect_buckets_from_state() {
+  terraform state pull 2>/dev/null | python - <<'PY'
 import json, sys
 raw = sys.stdin.read().strip()
 if not raw:
@@ -159,19 +174,21 @@ for r in data.get("resources", []):
         continue
     for i in r.get("instances", []):
         bid = (((i or {}).get("attributes") or {}).get("id"))
-        if isinstance(bid, str) and bid.startswith("soc-lab-"):
+        if isinstance(bid, str) and bid:
             print(bid)
 PY
-    terraform output -raw cloudtrail_bucket_name 2>/dev/null || true
-    terraform output -raw config_bucket_name 2>/dev/null || true
-    terraform output -raw vpc_flow_logs_bucket_name 2>/dev/null || true
-  } | grep '^soc-lab-' | sort -u
+}
+
+mapfile -t BUCKETS < <(
+  {
+    collect_buckets_from_outputs
+    collect_buckets_from_state
+  } | sort -u
 )
 
 empty_bucket() {
   local bucket="$1"
   echo "  $bucket ..."
-  # remove versioned objects + delete markers
   while true; do
     local payload
     payload="$(aws s3api list-object-versions --bucket "$bucket" --output json 2>/dev/null || true)"
@@ -237,6 +254,8 @@ if [[ "$PRESERVE" == "y" || "$PRESERVE" == "yes" ]]; then
     "aws_iam_user_policy.splunk_sqs[0]" \
     "aws_iam_user.splunk[0]" \
     "aws_iam_access_key.stratus[0]" \
+    "aws_iam_user_policy_attachment.stratus_power_user[0]" \
+    "aws_iam_user_policy_attachment.stratus_iam_full[0]" \
     "aws_iam_user.stratus[0]" \
     "aws_iam_access_key.stratus" \
     "aws_iam_user.stratus"
@@ -257,4 +276,3 @@ fi
 
 echo "Running terraform destroy..."
 terraform destroy
-

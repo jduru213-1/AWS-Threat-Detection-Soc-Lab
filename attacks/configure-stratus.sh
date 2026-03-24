@@ -5,7 +5,6 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 ENV_PATH="$REPO_ROOT/.env.stratus"
 PROFILE="stratus-lab"
-REGION="us-east-1"
 
 open_link() {
   local url="$1"
@@ -87,6 +86,36 @@ if [[ -z "$ACCESS_KEY_ID" || -z "$SECRET_ACCESS_KEY" ]]; then
   exit 1
 fi
 
+# ---------------------------------------------------------------------------
+# Resolve the AWS region that the lab was deployed into.
+#
+# Priority order:
+#   1. STRATUS_AWS_REGION / AWS_REGION already set in .env.stratus
+#      (build.sh writes this when the user picks a non-default region)
+#   2. aws_region output from the Terraform state in infra/
+#   3. Default: us-east-1 (with a visible warning so the user knows it fell back)
+# ---------------------------------------------------------------------------
+REGION=""
+
+# 1. Explicit value in the env file.
+REGION="$(grep -E '^(STRATUS_AWS_REGION|AWS_REGION)=' "$ENV_PATH" 2>/dev/null | tail -n1 | cut -d= -f2- || true)"
+
+# 2. Terraform output (works when infra/ state is present).
+if [[ -z "$REGION" ]]; then
+  INFRA_DIR="$REPO_ROOT/infra"
+  if [[ -f "$INFRA_DIR/versions.tf" ]]; then
+    REGION="$(cd "$INFRA_DIR" && terraform output -raw aws_region 2>/dev/null || true)"
+  fi
+fi
+
+# 3. Fallback with a visible warning.
+if [[ -z "$REGION" || "$REGION" == "null" ]]; then
+  REGION="us-east-1"
+  echo "[WARNING] Could not determine deployed region from .env.stratus or Terraform output."
+  echo "          Defaulting to us-east-1. If your lab is in a different region, set"
+  echo "          STRATUS_AWS_REGION=<region> in $ENV_PATH and re-source this script."
+fi
+
 mkdir -p "$HOME/.aws"
 CRED_PATH="$HOME/.aws/credentials"
 touch "$CRED_PATH"
@@ -120,4 +149,3 @@ echo
 echo "Run:"
 echo "  stratus list --platform aws"
 echo "  stratus detonate <technique-id> --cleanup"
-

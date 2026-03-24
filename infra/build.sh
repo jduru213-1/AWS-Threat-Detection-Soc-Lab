@@ -77,7 +77,6 @@ load_admin_env() {
   local env_file="$1"
   [[ -f "$env_file" ]] || return 0
   while IFS= read -r line || [[ -n "$line" ]]; do
-    # Remove UTF-8 BOM if present and trim CR from CRLF files.
     line="${line//$'\ufeff'/}"
     line="${line%$'\r'}"
     [[ -z "$line" || "$line" =~ ^[[:space:]]*# ]] && continue
@@ -100,7 +99,6 @@ fi
 
 LAB_PROFILE="${LAB_PROFILE:-soc-lab-admin}"
 
-# Prefer explicit env creds, then current AWS profile/default chain, then saved lab profile.
 if [[ -z "${AWS_ACCESS_KEY_ID:-}" || -z "${AWS_SECRET_ACCESS_KEY:-}" ]]; then
   if ! aws sts get-caller-identity >/dev/null 2>&1; then
     if aws sts get-caller-identity --profile "$LAB_PROFILE" >/dev/null 2>&1; then
@@ -121,7 +119,6 @@ if [[ -z "${AWS_ACCESS_KEY_ID:-}" || -z "${AWS_SECRET_ACCESS_KEY:-}" ]]; then
     if [[ -n "${region_prompt}" ]]; then
       export TF_VAR_aws_region="$region_prompt"
     fi
-    # Persist for future runs so destroy/build can reuse without re-prompting.
     aws configure set aws_access_key_id "$AWS_ACCESS_KEY_ID" --profile "$LAB_PROFILE"
     aws configure set aws_secret_access_key "$AWS_SECRET_ACCESS_KEY" --profile "$LAB_PROFILE"
     if [[ -n "${region_prompt}" ]]; then
@@ -136,12 +133,13 @@ fi
 terraform version
 echo
 
-if [[ -d ".terraform/providers" || -d ".terraform/plugins" ]]; then
-  echo "[Build] Terraform already initialized. Skipping init."
-else
-  echo "[Build] terraform init..."
-  terraform init -input=false
-fi
+# ---------------------------------------------------------------------------
+# Always run terraform init so the lock file and installed providers stay
+# consistent with versions.tf. -upgrade=false means existing provider
+# versions are reused; it will still detect and fix a stale or missing cache.
+# ---------------------------------------------------------------------------
+echo "[Build] terraform init (lock-file consistent)..."
+terraform init -input=false -upgrade=false
 echo
 
 tf_state_has() {
@@ -232,15 +230,17 @@ if splunk_key and splunk_secret:
 
 stratus_key = ((out.get("stratus_iam_access_key_id") or {}).get("value"))
 stratus_secret = ((out.get("stratus_iam_secret_key") or {}).get("value"))
+region = ((out.get("aws_region") or {}).get("value")) or ""
 if stratus_key and stratus_secret:
-    write_env(
-        os.path.join(repo_root, ".env.stratus"),
-        [
-            "# Stratus Red Team AWS credentials (local only, git-ignored)",
-            f"STRATUS_AWS_ACCESS_KEY_ID={stratus_key}",
-            f"STRATUS_AWS_SECRET_ACCESS_KEY={stratus_secret}",
-        ],
-    )
+    lines = [
+        "# Stratus Red Team AWS credentials (local only, git-ignored)",
+        f"STRATUS_AWS_ACCESS_KEY_ID={stratus_key}",
+        f"STRATUS_AWS_SECRET_ACCESS_KEY={stratus_secret}",
+    ]
+    # Write the deployed region so configure-stratus.sh can read it
+    # without needing Terraform to be initialised in the attacks/ shell.
+    if region:
+        lines.append(f"STRATUS_AWS_REGION={region}")
+    write_env(os.path.join(repo_root, ".env.stratus"), lines)
 PY
 fi
-

@@ -1,15 +1,13 @@
 # Create AWS indexes in Splunk (aws_cloudtrail, aws_config, aws_vpcflow).
-# Usage: python setup_splunk.py [--host localhost] [--port 8089] [--username admin]
+# Targets the default Splunk in soc/ (Docker): localhost:8089, admin user.
+# Usage: python setup_splunk.py
 
-import argparse  # Importing the argparse module to handle command-line arguments.
-import getpass  # Importing the getpass module to securely handle password input.
-import importlib  # Used for dynamic import of the Splunk SDK.
+import getpass
+import importlib
 
 try:
-    # Dynamically import the splunklib.client module to interact with the Splunk API.
     client = importlib.import_module("splunklib.client")
 except ImportError as e:
-    # Provide a clear message if the Splunk SDK is not installed.
     raise ImportError(
         "The Splunk Python SDK is required but not installed.\n"
         "Install it with:\n"
@@ -17,27 +15,32 @@ except ImportError as e:
         "and then re-run this script."
     ) from e
 
+# Local Docker Compose defaults (see soc/docker-compose.yml).
+SPLUNK_HOST = "localhost"
+SPLUNK_PORT = 8089
+SPLUNK_USERNAME = "admin"
+
 # Indexes the lab uses; must exist before the Add-on sends data.
-DEFAULT_INDEXES = [ # This is a list of the indexes that the lab uses.
+DEFAULT_INDEXES = [
     "aws_cloudtrail",
     "aws_config",
     "aws_vpcflow",
 ]
 
 
-def connect_splunk(host, port, username, password): # Defining a function to connect to the Splunk API.
-    """Connect to Splunk API. verify=False for self-signed cert (local Docker)."""
-    return client.connect( # Returning the connection to the Splunk API.
-        host=host, # The host of the Splunk API.
-        port=port, # The port of the Splunk API.
-        username=username, # The username of the Splunk API.
-        password=password, # The password of the Splunk API.
-        scheme="https", # The scheme of the Splunk API.
-        verify=False, # The verify of the Splunk API.
+def connect_splunk(password: str):
+    """Connect to the local lab Splunk (self-signed TLS → verify disabled)."""
+    return client.connect(
+        host=SPLUNK_HOST,
+        port=SPLUNK_PORT,
+        username=SPLUNK_USERNAME,
+        password=password,
+        scheme="https",
+        verify=False,
     )
 
 
-def ensure_indexes(service, index_names): # Defining a function to ensure the indexes exist.
+def ensure_indexes(service, index_names):
     """Create each index if it doesn't exist."""
     for name in index_names:
         if name in service.indexes:
@@ -46,16 +49,10 @@ def ensure_indexes(service, index_names): # Defining a function to ensure the in
             service.indexes.create(name)
             print(f"[indexes] {name} created")
 
-def main():
-    parser = argparse.ArgumentParser(description="Create AWS indexes in Splunk")
-    parser.add_argument("--host", default="localhost", help="Splunk host") 
-    parser.add_argument("--port", default=8089, help="Splunk management port")
-    parser.add_argument("--username", default="admin", help="Splunk user")
-    parser.add_argument("--password", default="ChangeMe123!", help="Splunk password (default)") 
-    args = parser.parse_args() 
 
+def main():
     password = getpass.getpass(prompt="Enter your Splunk password: ")
-    service = connect_splunk(host=args.host, port=args.port, username=args.username, password=password)
+    service = connect_splunk(password)
     ensure_indexes(service, DEFAULT_INDEXES)
     print("[setup] Splunk setup complete")
 

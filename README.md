@@ -53,7 +53,7 @@ cd soc && docker compose up -d
 ### 2. Create indexes
 ```bash
 pip install splunk-sdk
-python ./scripts/setup_splunk.py --no-verify-tls
+python ./scripts/setup_splunk.py
 ```
 ### 3. Build AWS infrastructure
 ```bash

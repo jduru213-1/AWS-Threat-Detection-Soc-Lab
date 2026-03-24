@@ -9,19 +9,18 @@ Beginner / Mid / Advanced quiz to validate understanding of:
 - Stratus Red Team integration
 
 Usage:
-  python .\scripts\knowledge_check.py --level beginner
-  python .\scripts\knowledge_check.py --level mid --count 12
-  python .\scripts\knowledge_check.py --level advanced --mode mixed --shuffle
+  python scripts/knowledge_check.py --level beginner
+  python scripts/knowledge_check.py --level mid --count 12
+  python scripts/knowledge_check.py --level advanced --mode mixed --shuffle
 """
 
 from __future__ import annotations
 
 import argparse
-import os
 import random
 import sys
 from dataclasses import dataclass, field
-from typing import Iterable, Literal, Optional
+from typing import Literal, Optional
 
 Level = Literal["beginner", "mid", "advanced"]
 Mode = Literal["mcq", "fill", "mixed"]
@@ -48,7 +47,6 @@ def style(s: str, *codes: str) -> str:
 
 def _supports_unicode() -> bool:
     enc = (getattr(sys.stdout, "encoding", None) or "").lower()
-    # Most Windows terminals now support UTF-8, but some Python installs still default to cp1252.
     if "utf" in enc:
         return True
     try:
@@ -67,7 +65,6 @@ def hr() -> None:
 
 
 def clear_screen() -> None:
-    # Minimal cross-platform clear.
     if not ANSI_ENABLED:
         return
     print("\033[2J\033[H", end="")
@@ -122,17 +119,29 @@ TAG_SOC = "soc"
 
 
 # Default rotating subset size per tier (when --count is not provided).
+#
+# Invariant: DEFAULT_COUNT[tier] MUST be strictly less than the sum of
+# BALANCED_MIX[tier] values. Without that slack, any topic pool that runs
+# short will silently produce fewer questions than expected.
+#
+#   beginner  mix_sum=9   default=7   slack=2
+#   mid       mix_sum=13  default=11  slack=2
+#   advanced  mix_sum=16  default=13  slack=3
 DEFAULT_COUNT: dict[Level, int] = {
-    "beginner": 8,
-    "mid": 12,
-    "advanced": 15,
+    "beginner": 7,
+    "mid": 11,
+    "advanced": 13,
 }
 
 # Topic mix per tier when using balanced rotation.
+# Rule: sum(values) MUST be strictly greater than DEFAULT_COUNT[tier].
 BALANCED_MIX: dict[Level, dict[str, int]] = {
-    "beginner": {TAG_DOCKER: 1, TAG_TERRAFORM: 1, TAG_AWS: 3, TAG_SPLUNK: 2, TAG_STRATUS: 1},
-    "mid": {TAG_AWS: 4, TAG_SPLUNK: 3, TAG_TERRAFORM: 3, TAG_STRATUS: 2},
-    "advanced": {TAG_AWS: 4, TAG_SPLUNK: 3, TAG_TERRAFORM: 3, TAG_STRATUS: 2, TAG_SOC: 3},
+    # sum=9, default=7, slack=2
+    "beginner": {TAG_DOCKER: 1, TAG_TERRAFORM: 1, TAG_AWS: 3, TAG_SPLUNK: 3, TAG_STRATUS: 1},
+    # sum=13, default=11, slack=2
+    "mid": {TAG_AWS: 4, TAG_SPLUNK: 3, TAG_TERRAFORM: 3, TAG_STRATUS: 2, TAG_SOC: 1},
+    # sum=16, default=13, slack=3
+    "advanced": {TAG_AWS: 4, TAG_SPLUNK: 3, TAG_TERRAFORM: 3, TAG_STRATUS: 2, TAG_SOC: 4},
 }
 
 
@@ -303,7 +312,7 @@ QUESTION_BANK: dict[Level, list[Question]] = {
             tags={TAG_SOC, TAG_TERRAFORM},
         ),
         Mcq(
-            prompt="You ran `attacks\\configure-stratus.sh` and now `destroy.sh` fails with AccessDenied. What's the most likely cause?",
+            prompt=f"You ran `attacks\\configure-stratus.sh` and now `destroy.sh` fails with AccessDenied. What's the most likely cause?",
             options=[
                 "Docker isn't running",
                 "Terraform is not installed",
@@ -478,13 +487,24 @@ QUESTION_BANK: dict[Level, list[Question]] = {
             explanation="Advanced debugging is a hop-by-hop proof, not guesswork.",
             tags={TAG_SOC, TAG_AWS, TAG_SPLUNK},
         ),
+        Mcq(
+            prompt="Why does `build.sh` always run `terraform init` (even when .terraform/ exists)?",
+            options=[
+                "To download the latest provider versions automatically",
+                "To ensure the installed providers match the lock file after any versions.tf change",
+                "Because Terraform requires init before every command",
+                "To reset Terraform state",
+            ],
+            answer_index=1,
+            explanation="`-upgrade=false` keeps existing versions but re-validates the cache against the lock file, catching stale or missing providers silently introduced by a versions.tf edit.",
+            tags={TAG_TERRAFORM, TAG_SOC},
+        ),
     ],
 }
 
 
 def parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
     p = argparse.ArgumentParser(description="AWS Threat Detection SOC Lab knowledge check")
-    # Backwards-compat alias: "senior" behaves like "advanced"
     p.add_argument(
         "--level",
         choices=["beginner", "mid", "advanced", "senior"],
@@ -492,7 +512,7 @@ def parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
         help="Difficulty tier (senior is an alias for advanced).",
     )
     p.add_argument("--mode", choices=["mcq", "fill", "mixed"], default="mixed")
-    p.add_argument("--count", type=int, default=0, help="Number of questions (0 = all for level)")
+    p.add_argument("--count", type=int, default=0, help="Number of questions (0 = tier default)")
     p.add_argument("--shuffle", action="store_true", help="Shuffle question order")
     p.add_argument("--no-shuffle", action="store_true", help="Disable shuffle (stable order)")
     p.add_argument("--seed", type=int, default=0, help="Random seed for reproducible shuffles")
@@ -517,14 +537,14 @@ def _tags(q: Question) -> set[str]:
 def pick_balanced(level: Level, questions: list[Question], count: int) -> list[Question]:
     """
     Pick a balanced subset across topics for the selected tier.
-    If any bucket is short, the remainder is filled from the unused pool.
+    If any per-topic bucket is short, the remainder is filled from the unused pool.
+    The returned list is capped at `count` items.
     """
     mix = BALANCED_MIX.get(level, {})
     selected: list[Question] = []
     used_ids: set[int] = set()
 
     def add_many(pool: list[Question], n: int) -> None:
-        nonlocal selected
         pool = [q for q in pool if id(q) not in used_ids]
         if not pool or n <= 0:
             return
@@ -538,7 +558,7 @@ def pick_balanced(level: Level, questions: list[Question], count: int) -> list[Q
         pool = [q for q in questions if tag in _tags(q)]
         add_many(pool, n)
 
-    # Fill remaining slots from anything not used.
+    # Fill remaining slots from anything not yet selected.
     remaining = count - len(selected)
     if remaining > 0:
         pool = [q for q in questions if id(q) not in used_ids]
@@ -602,7 +622,14 @@ def ask_fill(q: Fill) -> tuple[str, str]:
     return raw, q.expected
 
 
-def run_quiz(level: Level, mode: Mode, count: int, shuffle: bool, seed: int, questions: Optional[list[Question]] = None) -> int:
+def run_quiz(
+    level: Level,
+    mode: Mode,
+    count: int,
+    shuffle: bool,
+    seed: int,
+    questions: Optional[list[Question]] = None,
+) -> int:
     questions = list(questions) if questions is not None else iter_questions(level, mode)
     if seed:
         random.seed(seed)
@@ -643,7 +670,6 @@ def run_quiz(level: Level, mode: Mode, count: int, shuffle: bool, seed: int, que
                 )
             else:
                 given, expected = ask_fill(q)
-                # No strict grading for fill-ins; show expected.
                 print(style("Expected:", C.DIM), expected)
                 print(style("Why:", C.DIM), q.explanation)
                 results.append(
@@ -661,8 +687,10 @@ def run_quiz(level: Level, mode: Mode, count: int, shuffle: bool, seed: int, que
     if mcq_total:
         pct = int(round((mcq_correct / mcq_total) * 100))
         color = C.GREEN if pct >= 80 else (C.YELLOW if pct >= 60 else C.RED)
-        print(f"MCQ score: {style(str(mcq_correct), C.BOLD)}"
-              f"/{mcq_total}  ({style(str(pct) + '%', color, C.BOLD)})")
+        print(
+            f"MCQ score: {style(str(mcq_correct), C.BOLD)}"
+            f"/{mcq_total}  ({style(str(pct) + '%', color, C.BOLD)})"
+        )
     else:
         print("MCQ score: n/a (no multiple-choice questions selected)")
     print("")
@@ -678,19 +706,16 @@ def main(argv: Optional[list[str]] = None) -> int:
     raw_argv = sys.argv[1:] if argv is None else argv
     args = parse_args(raw_argv)
 
-    # Map legacy level name.
     level_value = args.level
     if level_value == "senior":
         level_value = "advanced"
 
-    # Default shuffle ON unless explicitly disabled.
     shuffle_value = True
     if args.no_shuffle:
         shuffle_value = False
     elif "--shuffle" in raw_argv:
         shuffle_value = True
 
-    # If the user didn't explicitly pass --level, prompt interactively (when possible).
     if "--level" not in raw_argv and sys.stdin.isatty():
         try:
             level_value = choose_level_interactively()
@@ -699,18 +724,16 @@ def main(argv: Optional[list[str]] = None) -> int:
             return 130
 
     level: Level = level_value  # type: ignore[assignment]
-    # Default rotating subset size per tier.
     count_value = args.count or min(DEFAULT_COUNT[level], len(iter_questions(level, args.mode)))
 
-    # Build the question set for this run.
     all_qs = iter_questions(level, args.mode)
     if shuffle_value:
         random.shuffle(all_qs)
     if not args.no_balanced:
         picked = pick_balanced(level, all_qs, count_value)
     else:
-        # Simple rotation: take the first N after shuffle.
         picked = all_qs[:count_value]
+
     try:
         return run_quiz(
             level=level,
@@ -727,4 +750,3 @@ def main(argv: Optional[list[str]] = None) -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-
