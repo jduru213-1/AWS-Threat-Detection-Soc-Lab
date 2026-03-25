@@ -1,4 +1,4 @@
-# AWS Threat Detection SOC Lab
+##  AWS Threat Detection SOC Lab
 
 Imagine a cloud SOC lab where building the infrastructure is part of the skill, but you never have to rebuild it from scratch. This project gives you a repeatable environment where you stand everything up once, understand how it all fits together, and from there focus on what keeps building threat detection and security monitoring skills in the cloud. 
 
@@ -19,7 +19,7 @@ I originally built this lab to strengthen my understanding of cloud-based threat
 3. The Splunk Add-on for AWS polls SQS, fetches the referenced S3 objects, and indexes them.
 4. Stratus Red Team detonates attack techniques that show up in CloudTrail within minutes.
 
-> Each source has its own bucket, queue, and Splunk index so failures stay isolated.
+> Each source has its own bucket, queue, and Splunk index, so failures stay isolated.
 
 ---
 
