@@ -88,7 +88,7 @@ stratus detonate <technique-id> --cleanup
 
 ---
 
-### 🔍 Detection examples
+### 🔍 Detection Examples
 
 ```spl
 # Failed console logins
