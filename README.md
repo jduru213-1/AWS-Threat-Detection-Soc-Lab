@@ -2,15 +2,15 @@
 
 Imagine a cloud SOC lab where building the infrastructure is part of the skill, but you never have to rebuild it from scratch. This project gives you a repeatable environment where you stand everything up once, understand how it all fits together, and from there focus on what keeps building threat detection and security monitoring skills in the cloud. 
 
-``Terraform codifies the infrastructure, so you build it once and spin it up or down as needed.``
+> Terraform codifies the infrastructure, so you build it once and spin it up or down as needed.
 
 I originally built this lab to strengthen my understanding of cloud-based threats and security monitoring while preparing for the AWS Solutions Architect certification, and I’m sharing it to help others on a similar journey.
 
-Feel free to check out the Medium blog, which walks through the full implementation step by step, as some components will require manual configuration in Splunk and AWS and cannot be fully automated.
+> Feel free to check out the Medium blog, which walks through the full implementation step by step, as some components will require manual configuration in Splunk and AWS and cannot be fully automated.
 
 ---
 
-## 🗺️ How it works
+## 🗺️ Architecture Overview
 
 ![Architecture: AWS telemetry to S3 to SQS to Splunk](https://github.com/user-attachments/assets/c65afbe7-7817-4510-8017-30ffeb521446)
 
@@ -19,11 +19,11 @@ Feel free to check out the Medium blog, which walks through the full implementat
 3. The Splunk Add-on for AWS polls SQS, fetches the referenced S3 objects, and indexes them.
 4. Stratus Red Team detonates attack techniques that show up in CloudTrail within minutes.
 
-Each source has its own bucket, queue, and Splunk index so failures stay isolated.
+> Each source has its own bucket, queue, and Splunk index so failures stay isolated.
 
 ---
 
-## ⚙️ What gets built
+## ⚙️ What This Lab Builds
 
 | Component | What it does |
 |---|---|
@@ -38,14 +38,14 @@ Each source has its own bucket, queue, and Splunk index so failures stay isolate
 
 ## 🚀 Quick start
 
-A full step-by-step walkthrough is in [`guides/step-by-step.md`](guides/step-by-step.md) and the Medium blog.
+For a detailed walkthrough, see [`guides/step-by-step.md`](guides/step-by-step.md), with additional context in the Medium blog.
 
 **Prerequisites:** 
 - Docker Desktop
 - Python 3.10+
 - AWS account
-- `aws configure` set up
-- Bash terminal.
+- `aws configure` 
+- Bash terminal
 
 ### 1. Start Splunk
 ```bash
@@ -74,7 +74,7 @@ cd infra && ./build.sh
 
 ---
 
-## 🎯 Running simulations
+## 🎯 Running Threat Simulations
 
 ```bash
 cd attacks
@@ -84,7 +84,7 @@ stratus list --platform aws
 stratus detonate <technique-id> --cleanup
 ```
 
-The purpose of running source `./configure-stratus.sh` each time you open a new terminal is to ensure your AWS profile and region are properly set for that session, since these configurations are not persisted automatically.
+> The purpose of running source `./configure-stratus.sh` each time you open a new terminal is to ensure your AWS profile and region are properly set for that session, since these configurations are not persisted automatically.
 
 ---
 
@@ -112,7 +112,7 @@ index=aws_cloudtrail eventName=CreateAccessKey
 cd infra && ./destroy.sh
 ```
 
-Use your designated build credentials instead of the Stratus profile. During the teardown process, the script automatically empties all S3 buckets, as AWS does not permit deletion of non-empty buckets. 
+> Use your designated build credentials instead of the Stratus profile. During the teardown process, the script automatically empties all S3 buckets, as AWS does not permit deletion of non-empty buckets. 
 You will also be prompted to decide whether to retain IAM users if you intend to rebuild the environment later.
 
 ---
