@@ -71,7 +71,6 @@ python ./scripts/setup_splunk.py
 - Download from [Splunkbase](https://splunkbase.splunk.com/app/1876/).
 - In Splunk: **Apps → Manage Apps → Install app from file**.
 - Upload the `.tgz` and restart Splunk when prompted.
-- Inputs are configured in step 5.
 
 ### 4. Build AWS infrastructure
 
