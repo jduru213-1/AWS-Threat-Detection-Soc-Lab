@@ -22,31 +22,20 @@ Make sure you have everything below before running any commands.
 
 ### AWS account
 
-Use a **personal or sandbox** AWS account — not production.
+Use a **personal or sandbox** AWS account, not production.
 
-After installing the AWS CLI, run:
-
-```bash
-aws configure
-```
-
-Enter your Access Key ID, Secret Access Key, and preferred region (e.g. `us-east-1`). When it works, this command returns your account info:
-
-```bash
-aws sts get-caller-identity
-```
+You do not need to run `aws configure` before Step 4. **`build.sh`** checks for the AWS CLI (and can help install it), then picks up credentials from the environment, `.env.soc-lab-admin`, the `soc-lab-admin` profile, or prompts you and saves keys there.
 
 ### IAM permissions
 
-**Read this before step 4.** The credentials you configure must be able to create IAM users, S3 buckets, SQS queues, CloudTrail, AWS Config, VPC Flow Logs, and related resources. A **restricted IAM user** will fail mid-apply with **`AccessDenied`**. For a personal lab, attach **`AdministratorAccess`** to your user in a **non-production account**.
+**Read this before Step 4.** The identity whose keys you use with **`build.sh`** must be allowed to create IAM users, S3 buckets, SQS queues, CloudTrail, AWS Config, VPC Flow Logs, and related resources. A **restricted IAM user** will fail mid-apply with **`AccessDenied`**. For this lab, **`AdministratorAccess`** in a **non-production account** is typical.
 
 ### Quick checklist
 
 - [ ] Docker Desktop is running
 - [ ] Python 3.10+ is installed
-- [ ] AWS CLI is installed and `aws configure` has been run
-- [ ] Terraform is installed
-- [ ] `aws sts get-caller-identity` returns your account ID without errors
+- [ ] Terraform is installed (`build.sh` stops with an install hint if it is missing)
+- [ ] [IAM permissions](#iam-permissions) above reviewed before Step 4
 
 ---
 
@@ -136,7 +125,7 @@ You can retrieve values again with **`terraform output`** from the **`infra/`** 
 |-------|------------|
 | `Permission denied` on the script | `chmod +x ./build.sh`, then retry |
 | `AccessDenied` from AWS | IAM user lacks permissions — see [IAM permissions](#iam-permissions) under **Before you start** |
-| Credential / auth errors | Run `aws configure`, re-enter keys, retry |
+| Credential / auth errors | See the Step 4 note on credentials; check `.env.soc-lab-admin`, the `soc-lab-admin` profile, or run `./build.sh` again and enter keys when prompted |
 
 ---
 

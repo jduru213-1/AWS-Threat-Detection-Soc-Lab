@@ -4,7 +4,7 @@ This folder helps you generate safe, controlled "known-bad" cloud activity for d
 
 ## Quick setup
 
-1. Build the AWS lab resources:
+1. If you have not deployed the lab yet, build the AWS resources:
    ```bash
    cd infra
    ./build.sh
