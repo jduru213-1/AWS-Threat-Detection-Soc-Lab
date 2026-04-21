@@ -1,0 +1,4 @@
+index="aws_cloudtrail" (eventName IN ("DeleteTrail","DeleteFlowLogs","AttachUserPolicy","AttachRolePolicy","CreateUser","CreateAccessKey","PutPublicAccessBlock","PutBucketPolicy","GetBucketPolicy"))
+| bin _time span=5m
+| stats count values(eventName) as actions values(userAgent) as userAgent by _time src_user src_ip user
+| sort - count

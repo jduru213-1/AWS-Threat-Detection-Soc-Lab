@@ -19,6 +19,8 @@ This folder helps you generate safe, controlled "known-bad" cloud activity for d
 
 - Each new terminal session: run `source ./configure-stratus.sh`.
 - `configure-stratus.sh` already adds Go's bin directory to `PATH` for the current shell and reuses local Terraform automatically when present.
+- If you prefer not to use `source`, run commands through the script:
+  `./configure-stratus.sh stratus detonate <technique-id> --cleanup`
 
 ## Run a simulation
 

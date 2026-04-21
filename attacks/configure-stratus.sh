@@ -16,6 +16,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 ENV_PATH="$REPO_ROOT/.env.stratus"
 PROFILE="stratus-lab"
+RUN_CMD=("$@")
 
 open_link() {
   local url="$1"
@@ -214,7 +215,15 @@ echo "  stratus list --platform aws"
 echo "  stratus detonate <technique-id> --cleanup"
 
 if [[ $_IS_SOURCED -eq 0 ]]; then
+  if [[ ${#RUN_CMD[@]} -gt 0 ]]; then
+    echo
+    echo "Executing command in configured Stratus environment:"
+    echo "  ${RUN_CMD[*]}"
+    exec "${RUN_CMD[@]}"
+  fi
+
   echo
   echo "[NOTE] This script was executed directly, so AWS_PROFILE/AWS_REGION were set only in a subshell."
   echo "       Use 'source ./configure-stratus.sh' to apply variables to your current terminal."
+  echo "       Or run: ./configure-stratus.sh <command> (example: ./configure-stratus.sh stratus list --platform aws)"
 fi
