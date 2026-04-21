@@ -139,6 +139,12 @@ index=aws_cloudtrail eventName=CreateAccessKey
 
 ---
 
+### 📄 Report
+
+- [Identity and Access Security Report](reports/identity-access-security-2026-04-21.pdf)
+
+---
+
 ### 🧹 Teardown
 
 ```bash
