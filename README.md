@@ -16,7 +16,7 @@ I originally built this lab to strengthen my understanding of cloud-based threat
 ### 🗺️ Architecture Overview
 
 <img width="800" height="347" alt="image" src="https://github.com/user-attachments/assets/ad861c71-5372-4ec2-909f-303b15b6e1c2" />
-
+----------------------------------------------------------------------------------------------------------------------------------
 1. AWS telemetry sources deliver log objects to S3.
 2. S3 publishes `ObjectCreated` notifications to SQS queues.
 3. The Splunk Add-on for AWS polls SQS, fetches the referenced S3 objects, and indexes them.
